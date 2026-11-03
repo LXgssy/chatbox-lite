@@ -54,8 +54,22 @@
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
   /* ---------------- 头像（纯绘制 SVG，无 emoji 无图片） ---------------- */
-  var ICONS = window.ICONS;
-  var AV = window.AVATARS;
+  /* 兼容 CDN 缓存过渡期：旧版 HTML 未引入 icons.js 时同步补载，避免崩溃 */
+  if (!window.ICONS || !window.AVATARS) {
+    try {
+      var xh = new XMLHttpRequest();
+      xh.open('GET', 'js/icons.js', false);
+      xh.send(null);
+      if (xh.status === 200) { (new Function(xh.responseText))(); }
+    } catch (e) { /* 忽略，走下方兜底 */ }
+  }
+  var ICONS = window.ICONS || { pencil: '', trash: '', moon: '', sun: '' };
+  var AV = window.AVATARS || {
+    order: ['bot', 'user'],
+    names: {},
+    avatarSvg: function () { return ''; },
+    shapePreviewSvg: function () { return ''; }
+  };
   var AVATAR_ORDER = AV.order;
   var AVATAR_COLORS = ['#10a37f', '#3f6df6', '#8b5cf6', '#ee7f2d', '#e0564d', '#0ea5b7', '#ec5f9e', '#5d6b68'];
   var AVATAR_DEFAULTS = {
