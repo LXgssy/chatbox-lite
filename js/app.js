@@ -19,22 +19,23 @@
     contextCount: 12,
     stream: true,
     aiName: 'AI 助手',
-    aiAvatar: '🤖',
+    aiAvatar: { shape: 'bot', color: '#10a37f' },
     userName: '我',
-    userAvatar: '🙂'
+    userAvatar: { shape: 'user', color: '#3f6df6' }
   };
 
-  /* 各大模型服务商预设（仅接口地址与推荐模型，不内置任何密钥） */
+  /* 各大模型服务商预设（仅接口地址与推荐模型，不内置任何密钥；纯文字标签，无 emoji） */
   var PRESETS = [
-    { id: 'deepseek', emoji: '🐋', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-chat', 'deepseek-reasoner'] },
-    { id: 'openai', emoji: '🌍', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1', 'o4-mini'] },
-    { id: 'kimi', emoji: '🌙', name: 'Kimi', baseUrl: 'https://api.moonshot.cn/v1', models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'] },
-    { id: 'qwen', emoji: '🐰', name: '通义千问', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen-turbo', 'qwen-plus', 'qwen-max'] },
-    { id: 'glm', emoji: '💡', name: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: ['glm-4-flash', 'glm-4-air', 'glm-4-plus'] },
-    { id: 'siliconflow', emoji: '⚡', name: '硅基流动', baseUrl: 'https://api.siliconflow.cn/v1', models: ['deepseek-ai/DeepSeek-V3', 'Qwen/Qwen2.5-72B-Instruct'] },
-    { id: 'doubao', emoji: '🔥', name: '火山方舟', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', models: ['doubao-1-5-pro-32k-250115', 'doubao-1-5-lite-32k-250115'] },
-    { id: 'openrouter', emoji: '🧭', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', models: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.0-flash-001'] },
-    { id: 'ollama', emoji: '🦙', name: 'Ollama 本地', baseUrl: 'http://localhost:11434/v1', models: ['llama3.1', 'qwen2.5', 'deepseek-r1'] }
+    { id: 'deepseek', name: 'DeepSeek 深度求索', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-chat', 'deepseek-reasoner'] },
+    { id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1', 'o4-mini'] },
+    { id: 'kimi', name: 'Kimi 月之暗面', baseUrl: 'https://api.moonshot.cn/v1', models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'] },
+    { id: 'qwen', name: '通义千问', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen-turbo', 'qwen-plus', 'qwen-max'] },
+    { id: 'glm', name: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: ['glm-4-flash', 'glm-4-air', 'glm-4-plus'] },
+    { id: 'siliconflow', name: '硅基流动', baseUrl: 'https://api.siliconflow.cn/v1', models: ['deepseek-ai/DeepSeek-V3', 'Qwen/Qwen2.5-72B-Instruct'] },
+    { id: 'doubao', name: '火山方舟', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', models: ['doubao-1-5-pro-32k-250115', 'doubao-1-5-lite-32k-250115'] },
+    { id: 'hunyuan', name: '腾讯混元', baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1', models: ['hunyuan-turbos-latest', 'hunyuan-lite'] },
+    { id: 'openrouter', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', models: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.0-flash-001'] },
+    { id: 'ollama', name: 'Ollama 本地', baseUrl: 'http://localhost:11434/v1', models: ['llama3.1', 'qwen2.5', 'deepseek-r1'] }
   ];
 
   var state = {
@@ -52,6 +53,70 @@
   function $(sel) { return document.querySelector(sel); }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
+  /* ---------------- 头像（纯绘制 SVG，无 emoji 无图片） ---------------- */
+  var ICONS = window.ICONS;
+  var AV = window.AVATARS;
+  var AVATAR_ORDER = AV.order;
+  var AVATAR_COLORS = ['#10a37f', '#3f6df6', '#8b5cf6', '#ee7f2d', '#e0564d', '#0ea5b7', '#ec5f9e', '#5d6b68'];
+  var AVATAR_DEFAULTS = {
+    ai: { shape: 'bot', color: '#10a37f' },
+    user: { shape: 'user', color: '#3f6df6' }
+  };
+  var pendingAvatars = { ai: null, user: null };   // 设置弹窗中的临时选择
+
+  /* 兼容旧版字符串（emoji）头像：自动迁移为默认绘制头像 */
+  function normalizeAvatar(v, kind) {
+    var d = AVATAR_DEFAULTS[kind];
+    if (v && typeof v === 'object' && AVATAR_ORDER.indexOf(v.shape) !== -1) {
+      return {
+        shape: v.shape,
+        color: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.color || '') ? v.color : d.color
+      };
+    }
+    return { shape: d.shape, color: d.color };
+  }
+  function avatarHTML(cfg) {
+    return AV.avatarSvg(cfg.shape, cfg.color);
+  }
+  /* 设置面板中的头像选择器（图形按钮 + 颜色按钮 + 实时预览） */
+  function renderAvatarPicker(kind) {
+    var p = pendingAvatars[kind];
+    if (!p) return;
+    var shapeRow = $('#' + kind + 'ShapeRow');
+    var colorRow = $('#' + kind + 'ColorRow');
+    var preview = $('#' + kind + 'AvatarPreview');
+    if (!shapeRow || !colorRow || !preview) return;
+    shapeRow.innerHTML = '';
+    AVATAR_ORDER.forEach(function (sh) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'shape-btn' + (p.shape === sh ? ' active' : '');
+      b.title = AV.names[sh] || sh;
+      b.setAttribute('aria-label', (AV.names[sh] || sh));
+      b.innerHTML = AV.shapePreviewSvg(sh);
+      b.addEventListener('click', function () {
+        p.shape = sh;
+        renderAvatarPicker(kind);
+      });
+      shapeRow.appendChild(b);
+    });
+    colorRow.innerHTML = '';
+    AVATAR_COLORS.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'color-dot' + (p.color === c ? ' active' : '');
+      b.style.background = c;
+      b.title = c;
+      b.setAttribute('aria-label', '头像颜色 ' + c);
+      b.addEventListener('click', function () {
+        p.color = c;
+        renderAvatarPicker(kind);
+      });
+      colorRow.appendChild(b);
+    });
+    preview.innerHTML = AV.avatarSvg(p.shape, p.color);
+  }
+
   function save() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
@@ -66,6 +131,8 @@
         var data = JSON.parse(raw);
         if (data && typeof data === 'object') {
           state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
+          state.settings.aiAvatar = normalizeAvatar(state.settings.aiAvatar, 'ai');
+          state.settings.userAvatar = normalizeAvatar(state.settings.userAvatar, 'user');
           state.chats = Array.isArray(data.chats) ? data.chats : [];
           state.activeId = data.activeId || null;
           state.theme = data.theme === 'dark' ? 'dark' : 'light';
@@ -180,8 +247,8 @@
       item.innerHTML =
         '<span class="chat-name"></span>' +
         '<span class="chat-item-btns">' +
-        '<button class="mini-btn" data-act="rename" title="重命名">✎</button>' +
-        '<button class="mini-btn" data-act="del" title="删除">✕</button>' +
+        '<button class="mini-btn" data-act="rename" title="重命名" aria-label="重命名会话">' + ICONS.pencil + '</button>' +
+        '<button class="mini-btn" data-act="del" title="删除" aria-label="删除会话">' + ICONS.trash + '</button>' +
         '</span>';
       item.querySelector('.chat-name').textContent = chat.title;
       item.addEventListener('click', function (e) {
@@ -220,7 +287,9 @@
     avatar.className = 'avatar';
     var s = state.settings;
     var whoName = msg.role === 'user' ? (s.userName || '我') : (s.aiName || 'AI 助手');
-    avatar.textContent = msg.role === 'user' ? (s.userAvatar || '🙂') : (s.aiAvatar || '🤖');
+    avatar.innerHTML = avatarHTML(normalizeAvatar(
+      msg.role === 'user' ? s.userAvatar : s.aiAvatar,
+      msg.role === 'user' ? 'user' : 'ai'));
     avatar.title = whoName;
 
     var body = document.createElement('div');
@@ -341,7 +410,7 @@
       var empty = document.createElement('div');
       empty.className = 'empty-state';
       empty.innerHTML =
-        '<div class="empty-logo">' + MD.escapeHtml(s.aiAvatar || '🤖') + '</div>' +
+        '<div class="empty-logo">' + avatarHTML(normalizeAvatar(s.aiAvatar, 'ai')) + '</div>' +
         '<h2>向 ' + MD.escapeHtml(s.aiName || 'AI 助手') + ' 发送第一条消息</h2>' +
         '<p>点击下方按钮选择常用服务商预设（或手动填写），再填入你自己的 API 密钥即可开始。所有记录仅保存在本设备，无法被远程撤回。</p>';
       var goSet = document.createElement('button');
@@ -664,6 +733,8 @@
       if (data.settings && typeof data.settings === 'object') {
         if (confirm('备份中包含接口配置，是否一并恢复（覆盖当前设置）？\n点「取消」则只导入会话。')) {
           state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+          state.settings.aiAvatar = normalizeAvatar(state.settings.aiAvatar, 'ai');
+          state.settings.userAvatar = normalizeAvatar(state.settings.userAvatar, 'user');
           renderTheme();
         }
       }
@@ -740,7 +811,7 @@
       var chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'preset-chip' + (current && current === p.baseUrl.replace(/\/+$/, '') ? ' active' : '');
-      chip.textContent = p.emoji + ' ' + p.name;
+      chip.textContent = p.name;
       chip.addEventListener('click', function () {
         $('#setBaseUrl').value = p.baseUrl;
         setModelSuggestions(p.models);
@@ -765,9 +836,11 @@
     $('#setStream').checked = !!s.stream;
     var el;
     if ((el = $('#setAiName'))) el.value = s.aiName || '';
-    if ((el = $('#setAiAvatar'))) el.value = s.aiAvatar || '';
     if ((el = $('#setUserName'))) el.value = s.userName || '';
-    if ((el = $('#setUserAvatar'))) el.value = s.userAvatar || '';
+    pendingAvatars.ai = normalizeAvatar(s.aiAvatar, 'ai');
+    pendingAvatars.user = normalizeAvatar(s.userAvatar, 'user');
+    renderAvatarPicker('ai');
+    renderAvatarPicker('user');
     renderPresets();
     var cur = (s.baseUrl || '').replace(/\/+$/, '');
     var hit = null;
@@ -789,9 +862,9 @@
     s.stream = $('#setStream').checked;
     var e;
     if ((e = $('#setAiName'))) s.aiName = e.value.trim() || 'AI 助手';
-    if ((e = $('#setAiAvatar'))) s.aiAvatar = e.value.trim() || '🤖';
     if ((e = $('#setUserName'))) s.userName = e.value.trim() || '我';
-    if ((e = $('#setUserAvatar'))) s.userAvatar = e.value.trim() || '🙂';
+    if (pendingAvatars.ai) s.aiAvatar = { shape: pendingAvatars.ai.shape, color: pendingAvatars.ai.color };
+    if (pendingAvatars.user) s.userAvatar = { shape: pendingAvatars.user.shape, color: pendingAvatars.user.color };
     save();
     closeSettings();
     toast('设置已保存');
@@ -801,7 +874,9 @@
   /* ---------------- 主题 ---------------- */
   function renderTheme() {
     document.documentElement.setAttribute('data-theme', state.theme);
-    $('#themeBtn').textContent = state.theme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式';
+    var tbtn = $('#themeBtn');
+    tbtn.innerHTML = (state.theme === 'dark' ? ICONS.sun : ICONS.moon) +
+      '<span>' + (state.theme === 'dark' ? '浅色模式' : '深色模式') + '</span>';
   }
   function toggleTheme() {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';

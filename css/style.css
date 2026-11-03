@@ -86,7 +86,9 @@ input, textarea { font-family: inherit; color: var(--text); }
   color: var(--accent-strong);
   font-size: 14px; font-weight: 600;
   transition: background .15s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
 }
+.new-chat-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 [data-theme="dark"] .new-chat-btn { color: #4fd0ae; }
 .new-chat-btn:hover { background: var(--accent); color: #fff; border-style: solid; }
 
@@ -109,8 +111,10 @@ input, textarea { font-family: inherit; color: var(--text); }
 .chat-item:hover .chat-item-btns, .chat-item.active .chat-item-btns { display: flex; }
 .chat-item .mini-btn {
   border: none; background: transparent; color: var(--text-dim);
-  font-size: 12px; padding: 3px 5px; border-radius: 6px; line-height: 1;
+  padding: 3px; border-radius: 6px; line-height: 0;
+  display: flex; align-items: center; justify-content: center;
 }
+.chat-item .mini-btn svg { width: 14px; height: 14px; display: block; }
 .chat-item .mini-btn:hover { background: var(--line); color: var(--text); }
 
 .sidebar-footer {
@@ -122,7 +126,10 @@ input, textarea { font-family: inherit; color: var(--text); }
   text-align: left; border: none; background: transparent;
   padding: 9px 10px; border-radius: 8px;
   font-size: 13.5px; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
 }
+.side-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.side-btn span { flex: 1; text-align: left; }
 .side-btn:hover { background: var(--panel-2); }
 
 #overlay {
@@ -151,7 +158,9 @@ input, textarea { font-family: inherit; color: var(--text); }
   font-size: 17px; width: 36px; height: 36px; border-radius: 8px;
   display: none; align-items: center; justify-content: center;
 }
+.icon-btn svg { width: 20px; height: 20px; }
 .icon-btn:hover { background: var(--panel-2); }
+.modal-close { display: flex; flex-shrink: 0; }
 .text-btn {
   border: none; background: transparent; color: var(--accent-strong);
   font-size: 13px; padding: 6px 8px; border-radius: 7px;
@@ -174,11 +183,10 @@ input, textarea { font-family: inherit; color: var(--text); }
 }
 .empty-logo {
   width: 64px; height: 64px; border-radius: 18px;
-  background: var(--accent); color: #fff;
-  font-size: 30px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
   box-shadow: var(--shadow);
 }
+.empty-logo svg { width: 100%; height: 100%; display: block; }
 .empty-state h2 { color: var(--text); font-size: 19px; }
 .empty-state p { font-size: 13.5px; max-width: 320px; line-height: 1.7; }
 .empty-state .primary-btn { margin-top: 4px; }
@@ -187,13 +195,10 @@ input, textarea { font-family: inherit; color: var(--text); }
 .msg.user { flex-direction: row-reverse; }
 .avatar {
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 17px; font-weight: 700; color: #fff;
+  overflow: hidden;
   margin-top: 2px;
 }
-.msg.user .avatar { background: var(--accent); }
-.msg.assistant .avatar { background: #5d6b68; }
-[data-theme="dark"] .msg.assistant .avatar { background: #3d4a46; }
+.avatar svg { width: 100%; height: 100%; display: block; }
 
 .msg-body { max-width: calc(100% - 54px); min-width: 0; display: flex; flex-direction: column; }
 .msg.user .msg-body { align-items: flex-end; }
@@ -405,6 +410,35 @@ input, textarea { font-family: inherit; color: var(--text); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
 .hidden-file { display: none; }
 
+/* 头像选择器（绘制图形 + 颜色） */
+.avatar-field { margin: 4px 0 14px; }
+.avatar-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 7px; }
+.avatar-preview {
+  width: 46px; height: 46px; border-radius: 13px;
+  overflow: hidden; margin-bottom: 9px;
+  border: 1px solid var(--line);
+}
+.avatar-preview svg { width: 100%; height: 100%; display: block; }
+.shape-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
+.shape-btn {
+  width: 34px; height: 34px; border-radius: 9px;
+  border: 1.5px solid var(--line); background: var(--panel-2); color: var(--text);
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  transition: all .15s;
+}
+.shape-btn svg { width: 21px; height: 21px; }
+.shape-btn:hover { border-color: var(--text-dim); }
+.shape-btn.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+[data-theme="dark"] .shape-btn.active { color: #4fd0ae; }
+.color-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.color-dot {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid transparent; padding: 0;
+  transition: transform .12s;
+}
+.color-dot:hover { transform: scale(1.12); }
+.color-dot.active { border-color: var(--text); box-shadow: inset 0 0 0 2px var(--panel); }
+
 /* 服务商预设按钮 */
 .preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .preset-chip {
@@ -432,7 +466,9 @@ input, textarea { font-family: inherit; color: var(--text); }
   border: 1px solid var(--line); border-radius: 9px;
   background: transparent; color: var(--text);
   font-size: 13.5px; padding: 8px 16px;
+  display: inline-flex; align-items: center; gap: 7px;
 }
+.ghost-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 .ghost-btn:hover { background: var(--panel-2); }
 .ghost-btn.danger { color: var(--danger); border-color: var(--danger); }
 
