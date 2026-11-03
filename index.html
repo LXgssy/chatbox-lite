@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="轻聊 Chatbox —— 简洁的 AI 对话客户端，支持自定义 OpenAI 兼容接口，数据保存在本地浏览器。">
+<title>轻聊 Chatbox · AI 对话助手</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+</head>
+<body>
+<div id="app">
+  <!-- ============ 侧边栏 ============ -->
+  <aside id="sidebar" aria-label="会话列表">
+    <div class="sidebar-brand">
+      <div class="brand-logo" aria-hidden="true">聊</div>
+      <div class="brand-text">
+        <strong>轻聊 Chatbox</strong>
+        <span>本地优先 · 数据不出设备</span>
+      </div>
+    </div>
+
+    <button id="newChatBtn" class="new-chat-btn" type="button">＋ 新建会话</button>
+
+    <nav id="chatList" class="chat-list" aria-label="历史会话"></nav>
+
+    <div class="sidebar-footer">
+      <button class="side-btn" id="exportMdBtn" type="button" title="将当前会话导出为 Markdown 文件">📤 导出会话</button>
+      <button class="side-btn" id="settingsBtn" type="button">⚙️ 设置</button>
+      <button class="side-btn" id="themeBtn" type="button">🌙 深色模式</button>
+    </div>
+  </aside>
+  <div id="overlay" aria-hidden="true"></div>
+
+  <!-- ============ 主区域 ============ -->
+  <main id="main">
+    <header id="chatHeader">
+      <button id="menuBtn" class="icon-btn" type="button" aria-label="打开会话列表">☰</button>
+      <h1 id="chatTitle" class="chat-title">新会话</h1>
+      <button id="clearChatBtn" class="text-btn" type="button">清空消息</button>
+    </header>
+
+    <div id="messages" class="messages" aria-live="polite">
+      <!-- 消息由 JS 渲染 -->
+    </div>
+
+    <div id="composer" class="composer">
+      <div class="composer-inner">
+        <textarea id="input" rows="1" placeholder="输入消息…（Enter 发送，Shift+Enter 换行）" aria-label="消息输入框"></textarea>
+        <button id="sendBtn" class="send-btn" type="button" aria-label="发送">发送</button>
+      </div>
+      <p class="composer-tip">内容由 AI 生成，请注意甄别；对话记录仅保存在本设备浏览器中，无法被任何人远程撤回。</p>
+    </div>
+  </main>
+</div>
+
+<!-- ============ 设置弹窗 ============ -->
+<div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal-mask" data-close-settings></div>
+  <div class="modal-card">
+    <header class="modal-head">
+      <h2 id="settingsTitle">设置</h2>
+      <button class="icon-btn" id="closeSettingsBtn" type="button" aria-label="关闭设置">✕</button>
+    </header>
+
+    <div class="modal-body">
+      <section class="form-section">
+        <h3>接口配置（OpenAI 兼容格式）</h3>
+        <p class="form-hint">点击常用服务商预设可自动填写接口地址与推荐模型（密钥仍需自己填入，本应用不内置任何密钥或代理服务）。</p>
+
+        <div class="preset-row" id="presetRow" aria-label="服务商预设"></div>
+
+        <label class="form-item">
+          <span>接口地址 Base URL</span>
+          <input type="text" id="setBaseUrl" placeholder="例如 https://api.deepseek.com/v1" autocomplete="off" spellcheck="false">
+        </label>
+
+        <label class="form-item">
+          <span>API 密钥</span>
+          <div class="key-row">
+            <input type="password" id="setApiKey" placeholder="sk-…" autocomplete="off" spellcheck="false">
+            <button type="button" class="text-btn" id="toggleKeyBtn">显示</button>
+          </div>
+        </label>
+
+        <label class="form-item">
+          <span>模型名称</span>
+          <input type="text" id="setModel" list="modelSuggestions" placeholder="例如 deepseek-chat / gpt-4o-mini" autocomplete="off" spellcheck="false">
+          <datalist id="modelSuggestions"></datalist>
+        </label>
+      </section>
+
+      <section class="form-section">
+        <h3>聊天对象</h3>
+        <p class="form-hint">自定义你和 AI 在对话中显示的名字与头像（支持任意 emoji 或 1-2 个文字）。</p>
+        <div class="form-grid">
+          <label class="form-item">
+            <span>AI 名称</span>
+            <input type="text" id="setAiName" placeholder="AI 助手" maxlength="20">
+          </label>
+          <label class="form-item">
+            <span>AI 头像</span>
+            <input type="text" id="setAiAvatar" placeholder="🤖" maxlength="4">
+          </label>
+          <label class="form-item">
+            <span>我的名称</span>
+            <input type="text" id="setUserName" placeholder="我" maxlength="20">
+          </label>
+          <label class="form-item">
+            <span>我的头像</span>
+            <input type="text" id="setUserAvatar" placeholder="🙂" maxlength="4">
+          </label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h3>对话参数</h3>
+
+        <label class="form-item">
+          <span>系统提示词（人设 / 规则）</span>
+          <textarea id="setSystem" rows="3" placeholder="例如：你是一位耐心的中文编程老师，回答尽量简洁并给出示例。"></textarea>
+        </label>
+
+        <div class="form-grid">
+          <label class="form-item">
+            <span>随机性（温度）：<b id="tempVal">0.7</b></span>
+            <input type="range" id="setTemp" min="0" max="2" step="0.1" value="0.7">
+          </label>
+          <label class="form-item">
+            <span>携带上下文条数</span>
+            <input type="number" id="setContext" min="2" max="100" value="12">
+          </label>
+        </div>
+
+        <label class="form-check">
+          <input type="checkbox" id="setStream" checked>
+          <span>流式输出（逐字显示回复）</span>
+        </label>
+      </section>
+
+      <section class="form-section">
+        <h3>数据</h3>
+        <p class="form-hint">所有配置与聊天记录仅保存在本设备的浏览器（localStorage）中，不上传到任何服务器；因此没有任何一方能够远程撤回或删除你的聊天记录。清除浏览器数据前请先备份。</p>
+        <div class="btn-row">
+          <button type="button" class="ghost-btn" id="backupBtn">📤 导出全部数据</button>
+          <button type="button" class="ghost-btn" id="importBtn">📂 导入备份</button>
+          <button type="button" class="ghost-btn danger" id="wipeBtn">清空全部数据</button>
+        </div>
+        <input type="file" id="importFile" accept=".json,application/json" class="hidden-file" aria-label="选择备份文件">
+      </section>
+    </div>
+
+    <footer class="modal-foot">
+      <button type="button" class="ghost-btn" data-close-settings>取消</button>
+      <button type="button" class="primary-btn" id="saveSettingsBtn">保存设置</button>
+    </footer>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script src="js/markdown.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
