@@ -78,9 +78,14 @@
   };
   var pendingAvatars = { ai: null, user: null };   // 设置弹窗中的临时选择
 
-  /* 兼容旧版字符串（emoji）头像：自动迁移为默认绘制头像 */
+  /* 兼容旧版字符串（emoji）头像：自动迁移为默认绘制头像；图片头像校验 dataURL */
+  var IMG_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/;
   function normalizeAvatar(v, kind) {
     var d = AVATAR_DEFAULTS[kind];
+    if (v && typeof v === 'object' && v.shape === 'image' &&
+        typeof v.img === 'string' && IMG_RE.test(v.img) && v.img.length <= 400000) {
+      return { shape: 'image', color: d.color, img: v.img };
+    }
     if (v && typeof v === 'object' && AVATAR_ORDER.indexOf(v.shape) !== -1) {
       return {
         shape: v.shape,
@@ -90,7 +95,36 @@
     return { shape: d.shape, color: d.color };
   }
   function avatarHTML(cfg) {
-    return AV.avatarSvg(cfg.shape, cfg.color);
+    return AV.avatarSvg(cfg.shape, cfg.color, cfg.img);
+  }
+  /* 选择本地图片 → 居中裁剪为方形 → 压缩为 128×128 JPEG dataURL */
+  function fileToAvatarDataUrl(file, cb) {
+    if (!file || !/^image\//.test(file.type)) { toast('请选择图片文件'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast('图片太大，请选择 8MB 以内的图片'); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        try {
+          var S = 128;
+          var cv = document.createElement('canvas');
+          cv.width = S; cv.height = S;
+          var ctx = cv.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, S, S);
+          var side = Math.min(im.naturalWidth, im.naturalHeight);
+          var sx = (im.naturalWidth - side) / 2;
+          var sy = (im.naturalHeight - side) / 2;
+          ctx.drawImage(im, sx, sy, side, side, 0, 0, S, S);
+          cb(cv.toDataURL('image/jpeg', 0.85));
+        } catch (e) {
+          toast('图片处理失败，请换一张试试');
+        }
+      };
+      im.onerror = function () { toast('图片读取失败，请换一张试试'); };
+      im.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   }
   /* 设置面板中的头像选择器（图形按钮 + 颜色按钮 + 实时预览） */
   function renderAvatarPicker(kind) {
@@ -110,10 +144,23 @@
       b.innerHTML = AV.shapePreviewSvg(sh);
       b.addEventListener('click', function () {
         p.shape = sh;
+        delete p.img;
         renderAvatarPicker(kind);
       });
       shapeRow.appendChild(b);
     });
+    /* 上传自定义图片按钮 */
+    var up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'shape-btn upload' + (p.shape === 'image' ? ' active' : '');
+    up.title = '上传自定义图片';
+    up.setAttribute('aria-label', '上传自定义图片');
+    up.innerHTML = ICONS.image || '';
+    up.addEventListener('click', function () {
+      var f = $('#' + kind + 'AvatarFile');
+      if (f) f.click();
+    });
+    shapeRow.appendChild(up);
     colorRow.innerHTML = '';
     AVATAR_COLORS.forEach(function (c) {
       var b = document.createElement('button');
@@ -128,7 +175,7 @@
       });
       colorRow.appendChild(b);
     });
-    preview.innerHTML = AV.avatarSvg(p.shape, p.color);
+    preview.innerHTML = AV.avatarSvg(p.shape, p.color, p.img);
   }
 
   function save() {
@@ -877,8 +924,8 @@
     var e;
     if ((e = $('#setAiName'))) s.aiName = e.value.trim() || 'AI 助手';
     if ((e = $('#setUserName'))) s.userName = e.value.trim() || '我';
-    if (pendingAvatars.ai) s.aiAvatar = { shape: pendingAvatars.ai.shape, color: pendingAvatars.ai.color };
-    if (pendingAvatars.user) s.userAvatar = { shape: pendingAvatars.user.shape, color: pendingAvatars.user.color };
+    if (pendingAvatars.ai) s.aiAvatar = { shape: pendingAvatars.ai.shape, color: pendingAvatars.ai.color, img: pendingAvatars.ai.img };
+    if (pendingAvatars.user) s.userAvatar = { shape: pendingAvatars.user.shape, color: pendingAvatars.user.color, img: pendingAvatars.user.img };
     save();
     closeSettings();
     toast('设置已保存');
@@ -959,6 +1006,25 @@
       });
     }
     $('#wipeBtn').addEventListener('click', wipeAll);
+
+    /* 头像图片上传（两个隐藏 file input，常驻不重建） */
+    ['ai', 'user'].forEach(function (kind) {
+      var f = $('#' + kind + 'AvatarFile');
+      if (!f) return;
+      f.addEventListener('change', function () {
+        var self = this;
+        if (self.files && self.files[0]) {
+          fileToAvatarDataUrl(self.files[0], function (dataUrl) {
+            if (!pendingAvatars[kind]) pendingAvatars[kind] = Object.assign({}, AVATAR_DEFAULTS[kind]);
+            pendingAvatars[kind].shape = 'image';
+            pendingAvatars[kind].img = dataUrl;
+            renderAvatarPicker(kind);
+            toast('图片头像已就绪，点击「保存设置」生效');
+          });
+        }
+        self.value = '';
+      });
+    });
 
     // 代码块复制（事件委托）
     $('#messages').addEventListener('click', function (e) {

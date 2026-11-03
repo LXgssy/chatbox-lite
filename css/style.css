@@ -199,6 +199,9 @@ input, textarea { font-family: inherit; color: var(--text); }
   margin-top: 2px;
 }
 .avatar svg { width: 100%; height: 100%; display: block; }
+.avatar img, .avatar-preview img, .empty-logo img {
+  width: 100%; height: 100%; display: block; object-fit: cover;
+}
 
 .msg-body { max-width: calc(100% - 54px); min-width: 0; display: flex; flex-direction: column; }
 .msg.user .msg-body { align-items: flex-end; }
@@ -430,6 +433,8 @@ input, textarea { font-family: inherit; color: var(--text); }
 .shape-btn:hover { border-color: var(--text-dim); }
 .shape-btn.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
 [data-theme="dark"] .shape-btn.active { color: #4fd0ae; }
+.shape-btn.upload { border-style: dashed; }
+.shape-btn.upload.active { border-style: solid; }
 .color-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .color-dot {
   width: 24px; height: 24px; border-radius: 50%;

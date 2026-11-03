@@ -39,7 +39,10 @@
     chat: '<svg ' + S + '><path d="M12 3.8c-4.6 0-8.2 3-8.2 6.7 0 2 1 3.7 2.7 4.9l-.7 3.4 3.6-1.7c.8.2 1.7.3 2.6.3 4.6 0 8.2-3 8.2-6.9s-3.6-6.7-8.2-6.7z"/></svg>',
     /* 双矩形（复制） */
     copy: '<svg ' + S + '><rect x="9" y="9" width="11.5" height="11.5" rx="2.2"/>' +
-          '<path d="M5.5 14.8h-1a2.3 2.3 0 0 1-2.3-2.3V5.2a2.3 2.3 0 0 1 2.3-2.3h7.3a2.3 2.3 0 0 1 2.3 2.3v1"/></svg>'
+          '<path d="M5.5 14.8h-1a2.3 2.3 0 0 1-2.3-2.3V5.2a2.3 2.3 0 0 1 2.3-2.3h7.3a2.3 2.3 0 0 1 2.3 2.3v1"/></svg>',
+    /* 图片（上传自定义头像） */
+    image: '<svg ' + S + '><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="9.5" r="1.6"/>' +
+           '<path d="M3.5 16.5l4.8-4.8a1.4 1.4 0 0 1 2 0l6.2 6.2M14 13l2-2a1.4 1.4 0 0 1 2 0l2.5 2.5"/></svg>'
   };
 
   /* 头像图形：填充路径，{fg}=前景（图形主体），{bg}=背景色（透出反色细节） */
@@ -77,8 +80,11 @@
   var ORDER = ['bot', 'user', 'cat', 'star', 'moon', 'heart', 'ghost', 'bolt'];
   var NAMES = { bot: '机器人', user: '人像', cat: '小猫', star: '星星', moon: '月亮', heart: '爱心', ghost: '小幽灵', bolt: '闪电' };
 
-  /* 生成彩色圆形头像 SVG（消息、空状态使用） */
-  function avatarSvg(shape, color) {
+  /* 生成头像：图片头像直接用 <img>（容器已有圆角裁剪），绘制头像用彩色圆底 SVG */
+  function avatarSvg(shape, color, img) {
+    if (shape === 'image' && img && /^data:image\//.test(img)) {
+      return '<img src="' + img + '" alt="" aria-hidden="true">';
+    }
     var body = (AVATAR_SHAPES[shape] || AVATAR_SHAPES.bot)
       .replace(/\{fg\}/g, '#ffffff')
       .replace(/\{bg\}/g, color);
