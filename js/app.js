@@ -722,6 +722,7 @@
   /* ---------------- 设置弹窗 ---------------- */
   function setModelSuggestions(models) {
     var dl = $('#modelSuggestions');
+    if (!dl) return; // 兼容缓存过渡期的旧版页面
     dl.innerHTML = '';
     (models || []).forEach(function (m) {
       var opt = document.createElement('option');
@@ -732,6 +733,7 @@
 
   function renderPresets() {
     var row = $('#presetRow');
+    if (!row) return; // 兼容缓存过渡期的旧版页面
     row.innerHTML = '';
     var current = (state.settings.baseUrl || '').replace(/\/+$/, '');
     PRESETS.forEach(function (p) {
@@ -761,10 +763,11 @@
     $('#tempVal').textContent = s.temperature;
     $('#setContext').value = s.contextCount;
     $('#setStream').checked = !!s.stream;
-    $('#setAiName').value = s.aiName || '';
-    $('#setAiAvatar').value = s.aiAvatar || '';
-    $('#setUserName').value = s.userName || '';
-    $('#setUserAvatar').value = s.userAvatar || '';
+    var el;
+    if ((el = $('#setAiName'))) el.value = s.aiName || '';
+    if ((el = $('#setAiAvatar'))) el.value = s.aiAvatar || '';
+    if ((el = $('#setUserName'))) el.value = s.userName || '';
+    if ((el = $('#setUserAvatar'))) el.value = s.userAvatar || '';
     renderPresets();
     var cur = (s.baseUrl || '').replace(/\/+$/, '');
     var hit = null;
@@ -784,10 +787,11 @@
     s.temperature = +$('#setTemp').value;
     s.contextCount = Math.max(2, Math.min(100, +$('#setContext').value || 12));
     s.stream = $('#setStream').checked;
-    s.aiName = $('#setAiName').value.trim() || 'AI 助手';
-    s.aiAvatar = $('#setAiAvatar').value.trim() || '🤖';
-    s.userName = $('#setUserName').value.trim() || '我';
-    s.userAvatar = $('#setUserAvatar').value.trim() || '🙂';
+    var e;
+    if ((e = $('#setAiName'))) s.aiName = e.value.trim() || 'AI 助手';
+    if ((e = $('#setAiAvatar'))) s.aiAvatar = e.value.trim() || '🤖';
+    if ((e = $('#setUserName'))) s.userName = e.value.trim() || '我';
+    if ((e = $('#setUserAvatar'))) s.userAvatar = e.value.trim() || '🙂';
     save();
     closeSettings();
     toast('设置已保存');
@@ -856,11 +860,15 @@
       $('#tempVal').textContent = this.value;
     });
     $('#backupBtn').addEventListener('click', backupAll);
-    $('#importBtn').addEventListener('click', function () { $('#importFile').click(); });
-    $('#importFile').addEventListener('change', function () {
-      if (this.files && this.files[0]) importBackup(this.files[0]);
-      this.value = '';
-    });
+    var impBtn = $('#importBtn');
+    var impFile = $('#importFile');
+    if (impBtn && impFile) { // 兼容缓存过渡期的旧版页面
+      impBtn.addEventListener('click', function () { impFile.click(); });
+      impFile.addEventListener('change', function () {
+        if (this.files && this.files[0]) importBackup(this.files[0]);
+        this.value = '';
+      });
+    }
     $('#wipeBtn').addEventListener('click', wipeAll);
 
     // 代码块复制（事件委托）
